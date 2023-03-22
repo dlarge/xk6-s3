@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -77,7 +78,9 @@ func (*S3) Upload(client *s3.Client, bucketName, objectKey, fileName string) err
 				Bucket: aws.String(bucketName),
 				Key:    aws.String(objectKey),
 				Body:   file,
-			})
+			}, s3.WithAPIOptions(
+				v4.SwapComputePayloadSHA256ForUnsignedPayloadMiddleware,
+			))
 		if err != nil {
 			log.Printf("Unable to upload file %v to %v/%v: %v\n", fileName, bucketName, objectKey, err)
 		}
