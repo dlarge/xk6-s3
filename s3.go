@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"bytes"
 	"context"
 	"log"
 	"os"
@@ -67,7 +68,7 @@ func (*S3) Create(accessKey, secretKey, endpoint, region string) (*s3.Client, er
 }
 
 // Uploads the given file to the S3 bucket with the given key.
-func (*S3) Upload(client *s3.Client, bucketName, objectKey, fileName string) error {
+func (*S3) UploadFile(client *s3.Client, bucketName, objectKey, fileName string) error {
 	file, err := os.Open(fileName)
 	if err != nil {
 		log.Printf("Unable to open file %v to upload: %v\n", fileName, err)
@@ -84,6 +85,22 @@ func (*S3) Upload(client *s3.Client, bucketName, objectKey, fileName string) err
 		if err != nil {
 			log.Printf("Unable to upload file %v to %v/%v: %v\n", fileName, bucketName, objectKey, err)
 		}
+	}
+	return err
+}
+
+// Uploads the given byte data to the S3 bucket with the given key.
+func (*S3) UploadData(client *s3.Client, bucketName, objectKey string, data []byte) error {
+	_, err := client.PutObject(context.Background(),
+		&s3.PutObjectInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String(objectKey),
+			Body:   bytes.NewReader(data),
+		}, s3.WithAPIOptions(
+			v4.SwapComputePayloadSHA256ForUnsignedPayloadMiddleware,
+		))
+	if err != nil {
+		log.Printf("Unable to upload bytes to %v/%v: %v\n", bucketName, objectKey, err)
 	}
 	return err
 }
